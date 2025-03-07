@@ -24,6 +24,8 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Wrap the socket with SSL
 context = ssl.create_default_context()
+context.check_hostname = False
+context.verify_mode = ssl.CERT_NONE 
 secure_socket = context.wrap_socket(client_socket, server_hostname=HOST)
 
 

@@ -1,34 +1,33 @@
 import socket
 import ssl
 
+HOST = '0.0.0.0'
+PORT = 4443
 
-# Define server address and port
-HOST = '0.0.0.0'  # Listen on all available network interfaces
-PORT = 4443       # Secure port
-
-
-# Create a standard TCP socket
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_socket.bind((HOST, PORT))
-server_socket.listen(5)  # Allow up to 5 connections
-
-
-print(f"[*] Server listening on {HOST}:{PORT}")
-
-
-# Wrap the socket with SSL encryption
 context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 context.load_cert_chain(certfile="server.crt", keyfile="server.key")
 
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
+server_socket.listen(5)
 
+print("[+] Waiting for connections...")
 
-with context.wrap_socket(server_socket, server_side=True) as secure_socket:
-    while True:
-        conn, addr = secure_socket.accept()
-        print(f"[+] New connection from {addr}")
+while True:
+    conn, addr = server_socket.accept()
+    print(f"[+] New connection from {addr}")
+
+    try:
+        secure_conn = context.wrap_socket(conn, server_side=True)
         
-        data = conn.recv(1024).decode()
-        print(f"[Client]: {data}")
-        
-        conn.send("Secure connection established!".encode())
-        conn.close()
+        while True:  # Оставляем соединение открытым для приёма данных
+            data = secure_conn.recv(1024)
+            if not data:
+                break
+            print("[Received]:", data.decode())
+
+        secure_conn.close()
+    except ssl.SSLError as e:
+        print("[!] SSL Error:", e)
+    except ConnectionResetError:
+        print("[!] Client disconnected unexpectedly")
